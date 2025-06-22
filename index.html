@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Two Player Pong</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: black;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<canvas id="pong"></canvas>
+
+<script>
+  const canvas = document.getElementById("pong");
+  const ctx = canvas.getContext("2d");
+
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+  canvas.width = width;
+  canvas.height = height;
+
+  const paddleWidth = 12;
+  const paddleHeight = height * 0.2;
+  const ballSize = 12;
+
+  const left = { x: 10, y: height / 2 - paddleHeight / 2 };
+  const right = { x: width - paddleWidth - 10, y: height / 2 - paddleHeight / 2 };
+  const ball = {
+    x: width / 2,
+    y: height / 2,
+    vx: 6 * (Math.random() > 0.5 ? 1 : -1),
+    vy: 4 * (Math.random() > 0.5 ? 1 : -1)
+  };
+
+  function resetBall() {
+    ball.x = width / 2;
+    ball.y = height / 2;
+    ball.vx = 6 * (Math.random() > 0.5 ? 1 : -1);
+    ball.vy = 4 * (Math.random() > 0.5 ? 1 : -1);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "white";
+
+    // middle dashed line
+    for (let i = 0; i < height; i += 30) {
+      ctx.fillRect(width / 2 - 1, i, 2, 15);
+    }
+
+    // paddles and ball
+    ctx.fillRect(left.x, left.y, paddleWidth, paddleHeight);
+    ctx.fillRect(right.x, right.y, paddleWidth, paddleHeight);
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ballSize, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function update() {
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // wall bounce
+    if (ball.y <= 0 || ball.y >= height) ball.vy *= -1;
+
+    // left paddle collision
+    if (ball.x - ballSize < left.x + paddleWidth &&
+        ball.y > left.y &&
+        ball.y < left.y + paddleHeight) {
+      ball.vx *= -1;
+      ball.x = left.x + paddleWidth + ballSize;
+    }
+
+    // right paddle collision
+    if (ball.x + ballSize > right.x &&
+        ball.y > right.y &&
+        ball.y < right.y + paddleHeight) {
+      ball.vx *= -1;
+      ball.x = right.x - ballSize;
+    }
+
+    // score
+    if (ball.x < 0 || ball.x > width) resetBall();
+  }
+
+  function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  // multitouch control
+  canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    for (let touch of e.touches) {
+      const x = touch.clientX;
+      const y = touch.clientY;
+
+      if (x < width / 2) {
+        // left player
+        left.y = y - paddleHeight / 2;
+        left.y = Math.max(0, Math.min(height - paddleHeight, left.y));
+      } else {
+        // right player
+        right.y = y - paddleHeight / 2;
+        right.y = Math.max(0, Math.min(height - paddleHeight, right.y));
+      }
+    }
+  }, { passive: false });
+
+  // resize canvas if needed
+  window.addEventListener("resize", () => {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
+  });
+
+  gameLoop();
+</script>
+</body>
+</html> 
