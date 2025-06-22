@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pong Final Direct Serve</title>
+  <title>Pong Final</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,10 +32,10 @@
 
   const paddleWidth = width * 0.2;
   const paddleHeight = 12;
-  const ballRadius = 10;
+  const padding = paddleHeight * 2;
 
-  const topPaddle = { x: width / 2 - paddleWidth / 2, y: 10 };
-  const bottomPaddle = { x: width / 2 - paddleWidth / 2, y: height - 22 };
+  const topPaddle = { x: width / 2 - paddleWidth / 2, y: padding };
+  const bottomPaddle = { x: width / 2 - paddleWidth / 2, y: height - padding - paddleHeight };
 
   const ball = { x: width / 2, y: height / 2, vx: 0, vy: 0, speed: 6 };
   let topScore = 0;
@@ -79,7 +79,7 @@
   function draw() {
     ctx.clearRect(0, 0, width, height);
 
-    // Middle dashed line
+    // Center dashed line
     ctx.fillStyle = "white";
     for (let i = 0; i < width; i += 30) {
       ctx.fillRect(i, height / 2 - 1, 15, 2);
@@ -91,13 +91,13 @@
     ctx.fillStyle = "red";
     ctx.fillRect(bottomPaddle.x, bottomPaddle.y, paddleWidth, paddleHeight);
 
-    // Draw ball
+    // Ball
     ctx.fillStyle = "white";
     ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
+    ctx.arc(ball.x, ball.y, 10, 0, Math.PI * 2);
     ctx.fill();
 
-    // Score and countdown only during waiting or win
+    // Score + countdown or winner message
     if (isWaiting || winner) {
       ctx.fillStyle = "white";
       ctx.font = "28px Arial";
@@ -127,26 +127,26 @@
     // Wall bounce
     if (ball.x <= 0 || ball.x >= width) ball.vx *= -1;
 
-    // Top paddle collision
-    if (ball.y - ballRadius <= topPaddle.y + paddleHeight &&
+    // Top paddle hit
+    if (ball.y - 10 <= topPaddle.y + paddleHeight &&
         ball.x > topPaddle.x && ball.x < topPaddle.x + paddleWidth) {
       ball.speed *= 1.05;
-      const relIntersect = (ball.x - (topPaddle.x + paddleWidth / 2)) / (paddleWidth / 2);
-      const bounceAngle = relIntersect * (Math.PI / 3); // ±60°
-      ball.vx = Math.sin(bounceAngle) * ball.speed;
-      ball.vy = Math.cos(bounceAngle) * ball.speed;
-      ball.y = topPaddle.y + paddleHeight + ballRadius;
+      const rel = (ball.x - (topPaddle.x + paddleWidth / 2)) / (paddleWidth / 2);
+      const angle = rel * (Math.PI / 3);
+      ball.vx = Math.sin(angle) * ball.speed;
+      ball.vy = Math.cos(angle) * ball.speed;
+      ball.y = topPaddle.y + paddleHeight + 10;
     }
 
-    // Bottom paddle collision
-    if (ball.y + ballRadius >= bottomPaddle.y &&
+    // Bottom paddle hit
+    if (ball.y + 10 >= bottomPaddle.y &&
         ball.x > bottomPaddle.x && ball.x < bottomPaddle.x + paddleWidth) {
       ball.speed *= 1.05;
-      const relIntersect = (ball.x - (bottomPaddle.x + paddleWidth / 2)) / (paddleWidth / 2);
-      const bounceAngle = relIntersect * (Math.PI / 3); // ±60°
-      ball.vx = Math.sin(bounceAngle) * ball.speed;
-      ball.vy = -Math.cos(bounceAngle) * ball.speed;
-      ball.y = bottomPaddle.y - ballRadius;
+      const rel = (ball.x - (bottomPaddle.x + paddleWidth / 2)) / (paddleWidth / 2);
+      const angle = rel * (Math.PI / 3);
+      ball.vx = Math.sin(angle) * ball.speed;
+      ball.vy = -Math.cos(angle) * ball.speed;
+      ball.y = bottomPaddle.y - 10;
     }
 
     // Score check
@@ -155,7 +155,6 @@
       checkWinner();
       if (!winner) resetBall(-1);
     }
-
     if (ball.y > height) {
       topScore++;
       checkWinner();
@@ -212,8 +211,8 @@
     height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
-    topPaddle.y = 10;
-    bottomPaddle.y = height - 22;
+    topPaddle.y = padding;
+    bottomPaddle.y = height - padding - paddleHeight;
     if (gameStarted) resetBall(Math.random() > 0.5 ? 1 : -1);
   });
 
