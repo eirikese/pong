@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pong 2P Final</title>
+  <title>Pong with Angles</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -57,9 +57,9 @@
     const interval = setInterval(() => {
       countdown--;
       if (countdown <= 0) {
-        const angle = (Math.random() * Math.PI) / 3 - Math.PI / 6;
+        const angle = (Math.random() * Math.PI / 3 - Math.PI / 6); // ±30°
         const sign = startDirection;
-        ball.vx = Math.cos(angle) * ball.speed * (Math.random() > 0.5 ? 1 : -1);
+        ball.vx = Math.cos(angle) * ball.speed;
         ball.vy = Math.sin(angle) * ball.speed * sign;
         isWaiting = false;
         clearInterval(interval);
@@ -81,25 +81,21 @@
   function draw() {
     ctx.clearRect(0, 0, width, height);
 
-    // Middle line
     ctx.fillStyle = "white";
     for (let i = 0; i < width; i += 30) {
       ctx.fillRect(i, height / 2 - 1, 15, 2);
     }
 
-    // Paddles
     ctx.fillStyle = "blue";
     ctx.fillRect(topPaddle.x, topPaddle.y, paddleWidth, paddleHeight);
     ctx.fillStyle = "red";
     ctx.fillRect(bottomPaddle.x, bottomPaddle.y, paddleWidth, paddleHeight);
 
-    // Ball
     ctx.fillStyle = "white";
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Countdown + Score only during pause or win
     if (isWaiting || winner) {
       ctx.fillStyle = "white";
       ctx.font = "28px Arial";
@@ -126,32 +122,36 @@
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // Wall bounce
     if (ball.x <= 0 || ball.x >= width) ball.vx *= -1;
 
-    // Paddle collisions
+    // top paddle
     if (ball.y - ballRadius <= topPaddle.y + paddleHeight &&
         ball.x > topPaddle.x && ball.x < topPaddle.x + paddleWidth) {
-      ball.vy *= -1;
-      ball.y = topPaddle.y + paddleHeight + ballRadius;
       ball.speed *= 1.05;
-      scaleBallVelocity();
+      const relativeIntersectX = (ball.x - (topPaddle.x + paddleWidth / 2)) / (paddleWidth / 2);
+      const bounceAngle = relativeIntersectX * (Math.PI / 3); // ±60°
+      ball.vx = Math.sin(bounceAngle) * ball.speed;
+      ball.vy = Math.cos(bounceAngle) * ball.speed;
+      ball.y = topPaddle.y + paddleHeight + ballRadius;
     }
 
+    // bottom paddle
     if (ball.y + ballRadius >= bottomPaddle.y &&
         ball.x > bottomPaddle.x && ball.x < bottomPaddle.x + paddleWidth) {
-      ball.vy *= -1;
-      ball.y = bottomPaddle.y - ballRadius;
       ball.speed *= 1.05;
-      scaleBallVelocity();
+      const relativeIntersectX = (ball.x - (bottomPaddle.x + paddleWidth / 2)) / (paddleWidth / 2);
+      const bounceAngle = relativeIntersectX * (Math.PI / 3); // ±60°
+      ball.vx = Math.sin(bounceAngle) * ball.speed;
+      ball.vy = -Math.cos(bounceAngle) * ball.speed;
+      ball.y = bottomPaddle.y - ballRadius;
     }
 
-    // Score check
     if (ball.y < 0) {
       bottomScore++;
       checkWinner();
       if (!winner) resetBall(-1);
     }
+
     if (ball.y > height) {
       topScore++;
       checkWinner();
@@ -164,12 +164,6 @@
     if (bottomScore >= 10) winner = "bottom";
   }
 
-  function scaleBallVelocity() {
-    const angle = Math.atan2(ball.vy, ball.vx);
-    ball.vx = Math.cos(angle) * ball.speed;
-    ball.vy = Math.sin(angle) * ball.speed;
-  }
-
   function loop() {
     if (!gameStarted) {
       drawStartMenu();
@@ -180,7 +174,6 @@
     requestAnimationFrame(loop);
   }
 
-  // Touch paddle control
   canvas.addEventListener("touchmove", (e) => {
     e.preventDefault();
     if (!gameStarted || winner) return;
@@ -198,7 +191,6 @@
     }
   }, { passive: false });
 
-  // Start game or reset after win
   canvas.addEventListener("touchstart", () => {
     if (!gameStarted) {
       gameStarted = true;
@@ -211,7 +203,6 @@
     }
   });
 
-  // Resize support
   window.addEventListener("resize", () => {
     width = window.innerWidth;
     height = window.innerHeight;
