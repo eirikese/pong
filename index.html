@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pong 2P Portrait</title>
+  <title>Pong 2P Final</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -36,12 +36,15 @@
 
   const topPaddle = { x: width / 2 - paddleWidth / 2, y: 10 };
   const bottomPaddle = { x: width / 2 - paddleWidth / 2, y: height - 22 };
+
   const ball = { x: width / 2, y: height / 2, vx: 0, vy: 0, speed: 6 };
-  let restartDelay = 3000;
+  let topScore = 0;
+  let bottomScore = 0;
   let countdown = 3;
   let isWaiting = true;
+  let winner = null;
 
-  function resetBall() {
+  function resetBall(startDirection = 1) {
     ball.x = width / 2;
     ball.y = height / 2;
     ball.speed = 6;
@@ -49,11 +52,14 @@
     isWaiting = true;
     ball.vx = 0;
     ball.vy = 0;
+
     const interval = setInterval(() => {
       countdown--;
       if (countdown <= 0) {
-        ball.vx = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
-        ball.vy = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
+        const angle = (Math.random() * Math.PI) / 3 - Math.PI / 6;
+        const sign = startDirection;
+        ball.vx = Math.cos(angle) * ball.speed * (Math.random() > 0.5 ? 1 : -1);
+        ball.vy = Math.sin(angle) * ball.speed * sign;
         isWaiting = false;
         clearInterval(interval);
       }
@@ -64,31 +70,43 @@
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = "white";
 
-    // center dashed line
+    // middle dashed line
     for (let i = 0; i < width; i += 30) {
       ctx.fillRect(i, height / 2 - 1, 15, 2);
     }
 
     // paddles
+    ctx.fillStyle = "blue";
     ctx.fillRect(topPaddle.x, topPaddle.y, paddleWidth, paddleHeight);
+    ctx.fillStyle = "red";
     ctx.fillRect(bottomPaddle.x, bottomPaddle.y, paddleWidth, paddleHeight);
 
     // ball
+    ctx.fillStyle = "white";
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
     ctx.fill();
 
-    // countdown
-    if (isWaiting) {
-      ctx.fillStyle = "gray";
-      ctx.font = "60px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(countdown, width / 2, height / 2 + 20);
+    // score and countdown
+    ctx.fillStyle = "white";
+    ctx.font = "28px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(`🔵 ${topScore} - ${bottomScore} 🔴`, width / 2, height / 2 - 30);
+
+    if (isWaiting && !winner) {
+      ctx.font = "48px Arial";
+      ctx.fillText(countdown, width / 2, height / 2 + 30);
+    }
+
+    if (winner) {
+      ctx.font = "48px Arial";
+      ctx.fillStyle = winner === "top" ? "blue" : "red";
+      ctx.fillText(`${winner === "top" ? "🔵 Top" : "🔴 Bottom"} Wins!`, width / 2, height / 2 + 30);
     }
   }
 
   function update() {
-    if (isWaiting) return;
+    if (isWaiting || winner) return;
 
     ball.x += ball.vx;
     ball.y += ball.vy;
@@ -96,7 +114,7 @@
     // wall bounce
     if (ball.x <= 0 || ball.x >= width) ball.vx *= -1;
 
-    // top paddle
+    // top paddle collision
     if (ball.y - ballRadius <= topPaddle.y + paddleHeight &&
         ball.x > topPaddle.x && ball.x < topPaddle.x + paddleWidth) {
       ball.vy *= -1;
@@ -105,7 +123,7 @@
       scaleBallVelocity();
     }
 
-    // bottom paddle
+    // bottom paddle collision
     if (ball.y + ballRadius >= bottomPaddle.y &&
         ball.x > bottomPaddle.x && ball.x < bottomPaddle.x + paddleWidth) {
       ball.vy *= -1;
@@ -114,8 +132,22 @@
       scaleBallVelocity();
     }
 
-    // scoring
-    if (ball.y < 0 || ball.y > height) resetBall();
+    // score check
+    if (ball.y < 0) {
+      bottomScore++;
+      checkWinner();
+      if (!winner) resetBall(-1);
+    }
+    if (ball.y > height) {
+      topScore++;
+      checkWinner();
+      if (!winner) resetBall(1);
+    }
+  }
+
+  function checkWinner() {
+    if (topScore >= 10) winner = "top";
+    if (bottomScore >= 10) winner = "bottom";
   }
 
   function scaleBallVelocity() {
@@ -130,13 +162,11 @@
     requestAnimationFrame(loop);
   }
 
-  // multitouch paddle control (top & bottom)
   canvas.addEventListener("touchmove", (e) => {
     e.preventDefault();
     for (let t of e.touches) {
       const x = t.clientX;
       const y = t.clientY;
-
       if (y < height / 2) {
         topPaddle.x = x - paddleWidth / 2;
         topPaddle.x = Math.max(0, Math.min(width - paddleWidth, topPaddle.x));
@@ -147,7 +177,6 @@
     }
   }, { passive: false });
 
-  // responsive
   window.addEventListener("resize", () => {
     width = window.innerWidth;
     height = window.innerHeight;
@@ -155,10 +184,10 @@
     canvas.height = height;
     topPaddle.y = 10;
     bottomPaddle.y = height - 22;
-    resetBall();
+    resetBall(Math.random() > 0.5 ? 1 : -1);
   });
 
-  resetBall();
+  resetBall(Math.random() > 0.5 ? 1 : -1);
   loop();
 </script>
 </body>
