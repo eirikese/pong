@@ -2,11 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Two Player Pong</title>
+  <title>Pong 2P Portrait</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
   <style>
     html, body {
       margin: 0;
@@ -15,7 +14,6 @@
       overflow: hidden;
       touch-action: none;
     }
-
     canvas {
       display: block;
     }
@@ -23,7 +21,6 @@
 </head>
 <body>
 <canvas id="pong"></canvas>
-
 <script>
   const canvas = document.getElementById("pong");
   const ctx = canvas.getContext("2d");
@@ -33,104 +30,136 @@
   canvas.width = width;
   canvas.height = height;
 
-  const paddleWidth = 12;
-  const paddleHeight = height * 0.2;
-  const ballSize = 12;
+  const paddleWidth = width * 0.2;
+  const paddleHeight = 12;
+  const ballRadius = 10;
 
-  const left = { x: 10, y: height / 2 - paddleHeight / 2 };
-  const right = { x: width - paddleWidth - 10, y: height / 2 - paddleHeight / 2 };
-  const ball = {
-    x: width / 2,
-    y: height / 2,
-    vx: 6 * (Math.random() > 0.5 ? 1 : -1),
-    vy: 4 * (Math.random() > 0.5 ? 1 : -1)
-  };
+  const topPaddle = { x: width / 2 - paddleWidth / 2, y: 10 };
+  const bottomPaddle = { x: width / 2 - paddleWidth / 2, y: height - 22 };
+  const ball = { x: width / 2, y: height / 2, vx: 0, vy: 0, speed: 6 };
+  let restartDelay = 3000;
+  let countdown = 3;
+  let isWaiting = true;
 
   function resetBall() {
     ball.x = width / 2;
     ball.y = height / 2;
-    ball.vx = 6 * (Math.random() > 0.5 ? 1 : -1);
-    ball.vy = 4 * (Math.random() > 0.5 ? 1 : -1);
+    ball.speed = 6;
+    countdown = 3;
+    isWaiting = true;
+    ball.vx = 0;
+    ball.vy = 0;
+    const interval = setInterval(() => {
+      countdown--;
+      if (countdown <= 0) {
+        ball.vx = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
+        ball.vy = (Math.random() > 0.5 ? 1 : -1) * ball.speed;
+        isWaiting = false;
+        clearInterval(interval);
+      }
+    }, 1000);
   }
 
   function draw() {
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = "white";
 
-    // middle dashed line
-    for (let i = 0; i < height; i += 30) {
-      ctx.fillRect(width / 2 - 1, i, 2, 15);
+    // center dashed line
+    for (let i = 0; i < width; i += 30) {
+      ctx.fillRect(i, height / 2 - 1, 15, 2);
     }
 
-    // paddles and ball
-    ctx.fillRect(left.x, left.y, paddleWidth, paddleHeight);
-    ctx.fillRect(right.x, right.y, paddleWidth, paddleHeight);
+    // paddles
+    ctx.fillRect(topPaddle.x, topPaddle.y, paddleWidth, paddleHeight);
+    ctx.fillRect(bottomPaddle.x, bottomPaddle.y, paddleWidth, paddleHeight);
+
+    // ball
     ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ballSize, 0, Math.PI * 2);
+    ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
     ctx.fill();
+
+    // countdown
+    if (isWaiting) {
+      ctx.fillStyle = "gray";
+      ctx.font = "60px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(countdown, width / 2, height / 2 + 20);
+    }
   }
 
   function update() {
+    if (isWaiting) return;
+
     ball.x += ball.vx;
     ball.y += ball.vy;
 
     // wall bounce
-    if (ball.y <= 0 || ball.y >= height) ball.vy *= -1;
+    if (ball.x <= 0 || ball.x >= width) ball.vx *= -1;
 
-    // left paddle collision
-    if (ball.x - ballSize < left.x + paddleWidth &&
-        ball.y > left.y &&
-        ball.y < left.y + paddleHeight) {
-      ball.vx *= -1;
-      ball.x = left.x + paddleWidth + ballSize;
+    // top paddle
+    if (ball.y - ballRadius <= topPaddle.y + paddleHeight &&
+        ball.x > topPaddle.x && ball.x < topPaddle.x + paddleWidth) {
+      ball.vy *= -1;
+      ball.y = topPaddle.y + paddleHeight + ballRadius;
+      ball.speed *= 1.05;
+      scaleBallVelocity();
     }
 
-    // right paddle collision
-    if (ball.x + ballSize > right.x &&
-        ball.y > right.y &&
-        ball.y < right.y + paddleHeight) {
-      ball.vx *= -1;
-      ball.x = right.x - ballSize;
+    // bottom paddle
+    if (ball.y + ballRadius >= bottomPaddle.y &&
+        ball.x > bottomPaddle.x && ball.x < bottomPaddle.x + paddleWidth) {
+      ball.vy *= -1;
+      ball.y = bottomPaddle.y - ballRadius;
+      ball.speed *= 1.05;
+      scaleBallVelocity();
     }
 
-    // score
-    if (ball.x < 0 || ball.x > width) resetBall();
+    // scoring
+    if (ball.y < 0 || ball.y > height) resetBall();
   }
 
-  function gameLoop() {
+  function scaleBallVelocity() {
+    const angle = Math.atan2(ball.vy, ball.vx);
+    ball.vx = Math.cos(angle) * ball.speed;
+    ball.vy = Math.sin(angle) * ball.speed;
+  }
+
+  function loop() {
     update();
     draw();
-    requestAnimationFrame(gameLoop);
+    requestAnimationFrame(loop);
   }
 
-  // multitouch control
+  // multitouch paddle control (top & bottom)
   canvas.addEventListener("touchmove", (e) => {
     e.preventDefault();
-    for (let touch of e.touches) {
-      const x = touch.clientX;
-      const y = touch.clientY;
+    for (let t of e.touches) {
+      const x = t.clientX;
+      const y = t.clientY;
 
-      if (x < width / 2) {
-        // left player
-        left.y = y - paddleHeight / 2;
-        left.y = Math.max(0, Math.min(height - paddleHeight, left.y));
+      if (y < height / 2) {
+        topPaddle.x = x - paddleWidth / 2;
+        topPaddle.x = Math.max(0, Math.min(width - paddleWidth, topPaddle.x));
       } else {
-        // right player
-        right.y = y - paddleHeight / 2;
-        right.y = Math.max(0, Math.min(height - paddleHeight, right.y));
+        bottomPaddle.x = x - paddleWidth / 2;
+        bottomPaddle.x = Math.max(0, Math.min(width - paddleWidth, bottomPaddle.x));
       }
     }
   }, { passive: false });
 
-  // resize canvas if needed
+  // responsive
   window.addEventListener("resize", () => {
     width = window.innerWidth;
     height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
+    topPaddle.y = 10;
+    bottomPaddle.y = height - 22;
+    resetBall();
   });
 
-  gameLoop();
+  resetBall();
+  loop();
 </script>
 </body>
-</html> 
+</html>
